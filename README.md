@@ -16,19 +16,23 @@ At 10,000 requests/day with 70% simple, 20% moderate, 10% complex:
 
 ## How It Works
 
-Request comes in
-↓
-X-Caller-ID validated
-↓
-Heuristic Classifier runs (free, instant)
-↓
-Confidence ≥ 0.75?
-YES → Router picks tier → Model called
-NO  → Haiku classifies → Scores blended → Router picks tier → Model called
-↓
-Response returned to caller
-↓
-Decision logged to SQLite (original model, routed model, score, signals, cost saved)
+```mermaid
+flowchart TD
+    A[Incoming Request] --> B[Validate X-Caller-ID]
+    B --> C[Heuristic Classifier]
+    C --> D{Confidence ≥ 0.75?}
+    D -->|Yes| F[Router]
+    D -->|No| E[LLM Classifier - Haiku]
+    E --> G[Blend Scores]
+    G --> F
+    F --> H{Complexity Score}
+    H -->|0.0-0.35| I[CHEAP - Haiku]
+    H -->|0.36-0.70| J[BALANCED - Sonnet]
+    H -->|0.71-1.0| K[CAPABLE - Opus]
+    I --> L[Log to SQLite]
+    J --> L
+    K --> L
+```
 
 ### Three-tier routing
 
@@ -132,6 +136,25 @@ tiers:
 No code changes needed — just edit the config and restart.
 
 ## Project Structure
+
+\```
+llm-cost-guard/
+├── classifier/
+│   ├── models.py          # Data structures
+│   ├── heuristic.py       # Pattern-based classifier
+│   ├── llm_classifier.py  # Meta-LLM fallback
+│   └── ensemble.py        # Orchestrates both
+├── router/
+│   └── router.py          # Tier selection and model routing
+├── proxy/
+│   ├── main.py            # FastAPI app
+│   └── logger.py          # SQLite logging
+├── dashboard/
+│   └── routes.py          # Live dashboard
+└── config/
+    └── pricing.yaml       # Model pricing and tier config
+\```
+
 ## Tech Stack
 
 - **FastAPI** — async proxy server
