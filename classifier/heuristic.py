@@ -8,12 +8,21 @@ _enc = tiktoken.get_encoding("cl100k_base")
 HIGH_COMPLEXITY_PATTERNS = [
     (r"\bstep[- ]by[- ]step\b",                     0.15, "step-by-step instruction"),
     (r"\banalyze\b|\banalyse\b",                    0.12, "analysis keyword"),
-    (r"\bcompare\b.*\bwith\b|\bvs\.?\b",            0.10, "comparison keyword"),
+    (r"\bcompare\b.*\bwith\b|\bvs\.?\b",            0.15, "comparison keyword"),
     (r"\bexplain why\b|\bwhy does\b",                0.10, "causal reasoning"),
     (r"\bcritique\b|\bevaluate\b|\bassess\b",        0.12, "evaluation keyword"),
-    (r"\bdesign\b.*\bsystem\b|\barchitect\b",        0.28, "system design"),
-    (r"\bdistributed\b|\bmicroservice\b|\bscalabl\b",0.15, "distributed systems"),
+    (r"\bdesign\b.*\b(system|engine|architecture|platform|solution)\b|\barchitect\b", 0.28, "system design"),
+    (r"\btrade[- ]off\b|\bpros and cons\b|\bwhen to use\b", 0.15, "trade-off analysis"),
+    (r"\bdistributed\b|\bmicroservices?\b|\bscalabl\b|\bcontainer\b|\borchestrat\b", 0.15, "distributed systems"),
+    (r"\bhow does\b.*\bwork\b|\bhow do\b.*\bwork\b", 0.10, "how does X work"),
+    (r"\boauth\b|\bjwt\b|\bssl\b|\btls\b|\bencrypt\b", 0.12, "security/auth topic"),
+    (r"\bpipeline\b|\bstream\b.*\bprocess\b|\bevent.*driven\b", 0.12, "data pipeline"),
     (r"\bmulti[- ]tenant\b|\brate[- ]limit\b",       0.12, "advanced infra pattern"),
+    (r"\btrade[- ]offs?\b|\bpros and cons\b|\bwhen to use\b", 0.15, "trade-off analysis"),
+    (r"\bevent[- ]sourc\b|\bcqrs\b|\bsaga\b|\boutbox\b", 0.15, "advanced architecture pattern"),
+    (r"\bfault[- ]toleran\b|\bconsensus\b|\bbyzantine\b|\bpaxos\b|\braft\b", 0.15, "distributed consensus"),    
+    (r"\breal[- ]time\b|\blow[- ]latency\b|\bhigh[- ]throughput\b", 0.12, "real-time requirement"),
+    (r"\bmulti[- ]region\b|\bactive[- ]active\b|\bgeo[- ]distribut\b", 0.15, "multi-region pattern"),    
     (r"\bprove\b|\bderive\b|\btheorem\b",            0.20, "mathematical proof"),
     (r"\boptimize\b|\brefactor\b",                   0.12, "code optimization"),
     (r"```[\s\S]+?```",                               0.15, "code block in prompt"),
@@ -92,7 +101,7 @@ class HeuristicClassifier:
                 semantic_delta += weight
                 signals.append(f"simple: {label}")
 
-        has_strong = semantic_delta >= 0.20
+        has_any_signal = semantic_delta != 0.0
 
         if tokens_in > 800:
             score += 0.20
@@ -100,7 +109,7 @@ class HeuristicClassifier:
         elif tokens_in > 300:
             score += 0.10
             signals.append(f"medium prompt ({tokens_in} tokens)")
-        elif tokens_in < 30 and not has_strong:
+        elif tokens_in < 15 and not has_any_signal:
             score -= 0.12
             signals.append(f"very short prompt ({tokens_in} tokens)")
 
