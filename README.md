@@ -16,6 +16,20 @@ At 10,000 requests/day with 70% simple, 20% moderate, 10% complex:
 
 ## How It Works
 
+Request comes in
+↓
+X-Caller-ID validated
+↓
+Heuristic Classifier runs (free, instant)
+↓
+Confidence ≥ 0.75?
+YES → Router picks tier → Model called
+NO  → Haiku classifies → Scores blended → Router picks tier → Model called
+↓
+Response returned to caller
+↓
+Decision logged to SQLite (original model, routed model, score, signals, cost saved)
+
 ### Three-tier routing
 
 | Score     | Tier     | Model   | Cost/M tokens |
@@ -52,7 +66,7 @@ When heuristic confidence is below 0.75, a meta-LLM call to Haiku provides a sec
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/yourusername/llm-cost-guard
+git clone https://github.com/vinodlp/llm-cost-guard
 cd llm-cost-guard
 python -m venv venv
 venv\Scripts\activate       # Windows
@@ -89,6 +103,9 @@ curl -X POST http://localhost:8000/v1/messages \
 The request is automatically routed to Haiku — you pay for Haiku, not Opus.
 
 ### 5. View dashboard
+
+Open your browser at `http://localhost:8000/dashboard`
+
 ## API Endpoints
 
 | Endpoint | Method | Description |
